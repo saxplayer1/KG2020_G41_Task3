@@ -9,5 +9,4 @@ public class Main {
         mw.setSize(800, 600);
         mw.setVisible(true);
     }
-
 }

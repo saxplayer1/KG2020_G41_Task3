@@ -25,6 +25,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     private PixelDrawer pd;
 
     private ArrayList<Line> lines = new ArrayList<>();
+    private ArrayList<Line> crosses = new ArrayList<>();
     private ScreenConverter sc = new ScreenConverter(-2,2,4,4,800,600);
 
     private BezierCurve curveUp = new BezierCurve(sc, pd);
@@ -44,12 +45,12 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
 
     private RealPoint checkPoints(BezierCurve curve, RealPoint point) {
         for(RealPoint p : curve.getPrimaryPoints()) {
-            if (p.getX() == point.getX() && p.getY() == point.getY()) {
+            if (Math.pow(p.getX() - point.getX(), 2) + Math.pow(p.getY() - point.getY(), 2) < 0.02) {
                 return p;
             }
         }
         for(RealPoint p : curve.getSupportPoints()) {
-            if (p.getX() == point.getX() && p.getY() == point.getY()) {
+            if (Math.pow(p.getX() - point.getX(), 2) + Math.pow(p.getY() - point.getY(), 2) < 0.02) {
                 return p;
             }
         }
@@ -85,8 +86,11 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         ld.drawLine(new ScreenPoint(0, getHeight() / 3), new ScreenPoint(getWidth(), getHeight() / 3));
         ld.drawLine(new ScreenPoint(0, getHeight() * 2 / 3), new ScreenPoint(getWidth(), getHeight() * 2 / 3));
 
-        bi_g.setColor(Color.gray);
         for (Line l : lines) {
+            drawLine(ld,l);
+        }
+
+        for (Line l : crosses) {
             drawLine(ld,l);
         }
 
@@ -127,10 +131,10 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     }
 
     private void dotToCross(RealPoint rp) {
-        lines.add(new Line(new RealPoint(rp.getX() - 0.03,rp.getY() - 0.03),
+        crosses.add(new Line(new RealPoint(rp.getX() - 0.03,rp.getY() - 0.03),
                 new RealPoint(rp.getX() + 0.03,rp.getY() + 0.03)));
 
-        lines.add(new Line(new RealPoint(rp.getX() - 0.03,rp.getY() + 0.03),
+        crosses.add(new Line(new RealPoint(rp.getX() - 0.03,rp.getY() + 0.03),
                 new RealPoint(rp.getX() + 0.03,rp.getY() - 0.03)));
     }
 
@@ -179,26 +183,10 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
 
     @Override
     public void mousePressed(MouseEvent e) {
-//        RealPoint rp = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
-//        if (e.getY() < getHeight() / 3) {
-//            RealPoint point = checkPoints(curveUp, rp);
-//            if (rp == point)  {
-//                curPoint = point;
-//            }
-//        }
-//        if (e.getY() > getHeight() * 2 / 3) {
-//            RealPoint point = checkPoints(curveDown, rp);
-//            if (rp == point)  {
-//                curPoint = point;
-//            }
-//        }
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
-//        curPoint = sc.s2r(prevDrag);
-//        prevDrag = null;
-//        repaint();
     }
 
     @Override
@@ -213,25 +201,6 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        ScreenPoint current = new ScreenPoint(e.getX(), e.getY());
-        if (prevDrag != null) {
-            ScreenPoint delta = new ScreenPoint(
-                    current.getX() - prevDrag.getX(),
-                    current.getY() - prevDrag.getY());
-            RealPoint deltaReal = sc.s2r(delta);
-            RealPoint zeroReal = sc.s2r(new ScreenPoint(0, 0));
-            RealPoint vector = new RealPoint(
-                    deltaReal.getX() - zeroReal.getX(),
-                    deltaReal.getY() - zeroReal.getY());
-            sc.setX(sc.getX() - vector.getX());
-            sc.setY(sc.getY() - vector.getY());
-
-            prevDrag = current;
-        }
-        if (currentLine != null) {
-            currentLine.setP2(sc.s2r(current));
-        }
-        repaint();
     }
 
     @Override
