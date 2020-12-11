@@ -9,8 +9,8 @@ import java.awt.*;
 import java.util.ArrayList;
 
 public class BezierCurve {
-    ArrayList<ScreenPoint> primaryPoints = new ArrayList<>();
-    ArrayList<ScreenPoint> supportPoints = new ArrayList<>();
+    ArrayList<RealPoint> primaryPoints = new ArrayList<>();
+    ArrayList<RealPoint> supportPoints = new ArrayList<>();
     PixelDrawer pd;
     ScreenConverter sc;
 
@@ -23,19 +23,19 @@ public class BezierCurve {
         this.pd = pd;
     }
 
-    public void addPrimary(ScreenPoint point) {
+    public void addPrimary(RealPoint point) {
         primaryPoints.add(point);
     }
 
-    public void addSupport(ScreenPoint point) {
+    public void addSupport(RealPoint point) {
         supportPoints.add(point);
     }
 
-    public ArrayList<ScreenPoint> getPrimaryPoints() {
+    public ArrayList<RealPoint> getPrimaryPoints() {
         return primaryPoints;
     }
 
-    public ArrayList<ScreenPoint> getSupportPoints() {
+    public ArrayList<RealPoint> getSupportPoints() {
         return supportPoints;
     }
 
@@ -43,8 +43,8 @@ public class BezierCurve {
         if (primaryPoints.size() * 2 - 2 == supportPoints.size() && supportPoints.size() != 0) {
             int j = 0;
             for (int i = 0; i < primaryPoints.size() - 1; i++) {
-                drawSegment(primaryPoints.get(i), primaryPoints.get(i + 1),
-                        supportPoints.get(j), supportPoints.get(j + 1));
+                drawSegment(primaryPoints.get(i),
+                        supportPoints.get(j), supportPoints.get(j + 1), primaryPoints.get(i + 1));
                 j+=2;
             }
         }
@@ -54,12 +54,19 @@ public class BezierCurve {
         this.pd = pd;
     }
 
-    private void drawSegment(ScreenPoint p0, ScreenPoint p1, ScreenPoint p2, ScreenPoint p3) {
-        for (double t = 0; t <= 1; t+= 0.02) {
-            int x = (int) (Math.pow(1 - t, 3) * p0.getX() + Math.pow(1 - t, 2) * 3 * t * p1.getX() + (1 - t) * 3 * t * t * p2.getX() + t * t * t * p3.getX());
-            int y = (int) (Math.pow(1 - t, 3) * p0.getY() + Math.pow(1 - t, 2) * 3 * t * p1.getY() + (1 - t) * 3 * t * t * p2.getY() + t * t * t * p3.getY());
+    public void setSc(ScreenConverter sc) {
+        this.sc = sc;
+    }
 
-            pd.setPixel(x, y, Color.black);
+    private void drawSegment(RealPoint p0, RealPoint p1, RealPoint p2, RealPoint p3) {
+        for (double t = 0; t <= 1; t+= 0.001) {
+
+            double x = Math.pow(1 - t, 3) * p0.getX() + Math.pow(1 - t, 2) * 3 * t * p1.getX() + (1 - t) * 3 * t * t * p2.getX() + t * t * t * p3.getX();
+            double y = Math.pow(1 - t, 3) * p0.getY() + Math.pow(1 - t, 2) * 3 * t * p1.getY() + (1 - t) * 3 * t * t * p2.getY() + t * t * t * p3.getY();
+
+            ScreenPoint point = sc.r2s(new RealPoint(x, y));
+            pd.setPixel(point.getX(), point.getY(), Color.black);
         }
+        System.out.println("drawn");
     }
 }

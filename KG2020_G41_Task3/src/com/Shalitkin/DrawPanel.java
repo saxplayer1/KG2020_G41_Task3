@@ -38,6 +38,24 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     private ScreenPoint prevDrag;
     private Line currentLine = null;
 
+    private RealPoint curPoint = null;
+    private int pc1 = 0;
+    private int pc2 = 0;
+
+    private RealPoint checkPoints(BezierCurve curve, RealPoint point) {
+        for(RealPoint p : curve.getPrimaryPoints()) {
+            if (p.getX() == point.getX() && p.getY() == point.getY()) {
+                return p;
+            }
+        }
+        for(RealPoint p : curve.getSupportPoints()) {
+            if (p.getX() == point.getX() && p.getY() == point.getY()) {
+                return p;
+            }
+        }
+        return null;
+    }
+
     @Override
     public void paint(Graphics g) {
         BufferedImage bi = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
@@ -50,64 +68,70 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         pd = new BufferedImagePixelDrawer(bi);
         LineDrawer ld = new BresenhaimLineDrawer(pd);
 
-        for(ScreenPoint p : curveUp.getPrimaryPoints()) {
+        for(RealPoint p : curveUp.getPrimaryPoints()) {
             dotToCross(p);
         }
-        for(ScreenPoint p : curveUp.getSupportPoints()) {
+        for(RealPoint p : curveUp.getSupportPoints()) {
             dotToCross(p);
         }
 
-        for(ScreenPoint p : curveDown.getPrimaryPoints()) {
+        for(RealPoint p : curveDown.getPrimaryPoints()) {
             dotToCross(p);
         }
-        for(ScreenPoint p : curveDown.getSupportPoints()) {
+        for(RealPoint p : curveDown.getSupportPoints()) {
             dotToCross(p);
         }
 
         ld.drawLine(new ScreenPoint(0, getHeight() / 3), new ScreenPoint(getWidth(), getHeight() / 3));
         ld.drawLine(new ScreenPoint(0, getHeight() * 2 / 3), new ScreenPoint(getWidth(), getHeight() * 2 / 3));
 
+        bi_g.setColor(Color.gray);
         for (Line l : lines) {
             drawLine(ld,l);
         }
 
+        curveUp.setSc(sc);
+        curveDown.setSc(sc);
+        curveMid.setSc(sc);
+
         curveUp.setPd(pd);
         curveDown.setPd(pd);
         curveMid.setPd(pd);
-        g.drawImage(bi, 0, 0, null);
 
-        curveUp.drawCurve();
-        curveDown.drawCurve();
         if(curveUp.hasEqualSize(curveDown)) {
             double dif1 = 2 - dif;
             curveMid.getPrimaryPoints().clear();
             curveMid.getSupportPoints().clear();
             for (int i = 0; i < curveUp.getPrimaryPoints().size(); i++) {
-                int pX = (int) ((curveUp.getPrimaryPoints().get(i).getX() * dif + curveDown.getPrimaryPoints().get(i).getX() * dif1) / 2);
-                int pY = (int) ((curveUp.getPrimaryPoints().get(i).getY() * dif + curveDown.getPrimaryPoints().get(i).getY() * dif1) / 2);
-                curveMid.addPrimary(new ScreenPoint(pX, pY));
+                double pX = (curveUp.getPrimaryPoints().get(i).getX() * dif + curveDown.getPrimaryPoints().get(i).getX() * dif1) / 2;
+                double pY = (curveUp.getPrimaryPoints().get(i).getY() * dif + curveDown.getPrimaryPoints().get(i).getY() * dif1) / 2;
+                curveMid.addPrimary(new RealPoint(pX, pY));
             }
 
             for (int i = 0; i < curveUp.getSupportPoints().size(); i++) {
-                int pX = (int) ((curveUp.getSupportPoints().get(i).getX() * dif + curveDown.getSupportPoints().get(i).getX() * dif1) / 2);
-                int pY = (int) ((curveUp.getSupportPoints().get(i).getY() * dif + curveDown.getSupportPoints().get(i).getY() * dif1) / 2);
-                curveMid.addSupport(new ScreenPoint(pX, pY));
+                double pX = (curveUp.getSupportPoints().get(i).getX() * dif + curveDown.getSupportPoints().get(i).getX() * dif1) / 2;
+                double pY = (curveUp.getSupportPoints().get(i).getY() * dif + curveDown.getSupportPoints().get(i).getY() * dif1) / 2;
+                curveMid.addSupport(new RealPoint(pX, pY));
             }
         }
+
+        curveUp.drawCurve();
+        curveDown.drawCurve();
         curveMid.drawCurve();
+
+        g.drawImage(bi, 0, 0, null);
     }
 
     private void drawLine (LineDrawer ld, Line l){
         ld.drawLine(sc.r2s(l.getP1()),sc.r2s(l.getP2()));
     }
 
-    private void dotToCross(ScreenPoint sp) {
-        RealPoint point = sc.s2r(sp);
-        lines.add(new Line(new RealPoint(point.getX() - 0.03,point.getY() - 0.03),
-                new RealPoint(point.getX() + 0.03,point.getY() + 0.03)));
+    private void dotToCross(RealPoint rp) {
+        lines.add(new Line(new RealPoint(rp.getX() - 0.03,rp.getY() - 0.03),
+                new RealPoint(rp.getX() + 0.03,rp.getY() + 0.03)));
 
-        lines.add(new Line(new RealPoint(point.getX() - 0.03,point.getY() + 0.03),
-                new RealPoint(point.getX() + 0.03,point.getY() - 0.03)));
+        lines.add(new Line(new RealPoint(rp.getX() - 0.03,rp.getY() + 0.03),
+                new RealPoint(rp.getX() + 0.03,rp.getY() - 0.03)));
     }
 
 
@@ -115,30 +139,38 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     public void mouseClicked(MouseEvent e) {
         if (e.getY() < getHeight() / 3) {
             if (e.getButton() == MouseEvent.BUTTON1) {
-                if (curveUp.getPrimaryPoints().size() * 2  == curveUp.getSupportPoints().size() || curveUp.getPrimaryPoints().size() == 0) {
-                    curveUp.addPrimary(new ScreenPoint(e.getX(), e.getY()));
-                    pd.setPixel(e.getX(), e.getY(), Color.black);
+                if (curveUp.getPrimaryPoints().size() * 2 == curveUp.getSupportPoints().size() || curveUp.getPrimaryPoints().size() == 0) {
+                    RealPoint rp;
+                    ScreenPoint sp = new ScreenPoint(e.getX(), e.getY());
+                    rp = sc.s2r(sp);
+                    curveUp.addPrimary(rp);
                 }
             }
             if (e.getButton() == MouseEvent.BUTTON3) {
                 if (curveUp.getPrimaryPoints().size() * 2 - 2 == curveUp.getSupportPoints().size() || curveUp.getPrimaryPoints().size() * 2 - 1 == curveUp.getSupportPoints().size()) {
-                    curveUp.addSupport(new ScreenPoint(e.getX(), e.getY()));
-                    pd.setPixel(e.getX(), e.getY(), Color.red);
+                    RealPoint rp;
+                    ScreenPoint sp = new ScreenPoint(e.getX(), e.getY());
+                    rp = sc.s2r(sp);
+                    curveUp.addSupport(rp);
                 }
             }
         }
 
         if (e.getY() > getHeight() * 2 / 3) {
             if (e.getButton() == MouseEvent.BUTTON1) {
-                if (curveDown.getPrimaryPoints().size() * 2  == curveDown.getSupportPoints().size() || curveDown.getPrimaryPoints().size() == 0) {
-                    curveDown.addPrimary(new ScreenPoint(e.getX(), e.getY()));
-                    pd.setPixel(e.getX(), e.getY(), Color.black);
+                if (curveDown.getPrimaryPoints().size() * 2 == curveDown.getSupportPoints().size() || curveDown.getPrimaryPoints().size() == 0) {
+                    RealPoint rp;
+                    ScreenPoint sp = new ScreenPoint(e.getX(), e.getY());
+                    rp = sc.s2r(sp);
+                    curveDown.addPrimary(rp);
                 }
             }
             if (e.getButton() == MouseEvent.BUTTON3) {
                 if (curveDown.getPrimaryPoints().size() * 2 - 2 == curveDown.getSupportPoints().size() || curveDown.getPrimaryPoints().size() * 2 - 1 == curveDown.getSupportPoints().size()) {
-                    curveDown.addSupport(new ScreenPoint(e.getX(), e.getY()));
-                    pd.setPixel(e.getX(), e.getY(), Color.red);
+                    RealPoint rp;
+                    ScreenPoint sp = new ScreenPoint(e.getX(), e.getY());
+                    rp = sc.s2r(sp);
+                    curveDown.addSupport(rp);
                 }
             }
         }
@@ -147,10 +179,26 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
 
     @Override
     public void mousePressed(MouseEvent e) {
+//        RealPoint rp = sc.s2r(new ScreenPoint(e.getX(), e.getY()));
+//        if (e.getY() < getHeight() / 3) {
+//            RealPoint point = checkPoints(curveUp, rp);
+//            if (rp == point)  {
+//                curPoint = point;
+//            }
+//        }
+//        if (e.getY() > getHeight() * 2 / 3) {
+//            RealPoint point = checkPoints(curveDown, rp);
+//            if (rp == point)  {
+//                curPoint = point;
+//            }
+//        }
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
+//        curPoint = sc.s2r(prevDrag);
+//        prevDrag = null;
+//        repaint();
     }
 
     @Override
@@ -165,6 +213,25 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
 
     @Override
     public void mouseDragged(MouseEvent e) {
+        ScreenPoint current = new ScreenPoint(e.getX(), e.getY());
+        if (prevDrag != null) {
+            ScreenPoint delta = new ScreenPoint(
+                    current.getX() - prevDrag.getX(),
+                    current.getY() - prevDrag.getY());
+            RealPoint deltaReal = sc.s2r(delta);
+            RealPoint zeroReal = sc.s2r(new ScreenPoint(0, 0));
+            RealPoint vector = new RealPoint(
+                    deltaReal.getX() - zeroReal.getX(),
+                    deltaReal.getY() - zeroReal.getY());
+            sc.setX(sc.getX() - vector.getX());
+            sc.setY(sc.getY() - vector.getY());
+
+            prevDrag = current;
+        }
+        if (currentLine != null) {
+            currentLine.setP2(sc.s2r(current));
+        }
+        repaint();
     }
 
     @Override
@@ -176,10 +243,9 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     public void mouseWheelMoved(MouseWheelEvent e) {
         if (curveUp.hasEqualSize(curveDown)) {
             int clicks = e.getWheelRotation();
-            dif = 1;
-            double c = clicks > 0 ? 0.1 : -0.1;
+            double c = clicks > 0 ? 0.01 : -0.01;
             for (int i = 0; i < Math.abs(clicks); i++) {
-                if (dif <= 2 && dif >= 0) {
+                if (dif < 2 && dif > 0) {
                     dif += c;
                 }
             }

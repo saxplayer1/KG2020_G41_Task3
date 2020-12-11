@@ -15,6 +15,5 @@ public class BufferedImagePixelDrawer implements PixelDrawer{
         if (x >= 0 && y >= 0 && x < bi.getWidth() && y < bi.getHeight()) {
             bi.setRGB(x,y,c.getRGB());
         }
-
     }
 }
