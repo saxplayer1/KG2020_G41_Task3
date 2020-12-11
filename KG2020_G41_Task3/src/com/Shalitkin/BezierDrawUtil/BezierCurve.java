@@ -67,6 +67,5 @@ public class BezierCurve {
             ScreenPoint point = sc.r2s(new RealPoint(x, y));
             pd.setPixel(point.getX(), point.getY(), Color.black);
         }
-        System.out.println("drawn");
     }
 }

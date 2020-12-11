@@ -212,7 +212,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     public void mouseWheelMoved(MouseWheelEvent e) {
         if (curveUp.hasEqualSize(curveDown)) {
             int clicks = e.getWheelRotation();
-            double c = clicks > 0 ? 0.01 : -0.01;
+            double c = clicks > 0 ? 0.05 : -0.05;
             for (int i = 0; i < Math.abs(clicks); i++) {
                 if (dif < 2 && dif > 0) {
                     dif += c;
