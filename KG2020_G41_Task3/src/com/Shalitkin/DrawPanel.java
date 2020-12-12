@@ -15,6 +15,8 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
+import static com.Shalitkin.Example.makeMiddleCurve;
+
 
 public class DrawPanel extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener {
     public DrawPanel() {
@@ -28,34 +30,37 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
     private ArrayList<Line> crosses = new ArrayList<>();
     private ScreenConverter sc = new ScreenConverter(-2,2,4,4,800,600);
 
-    private BezierCurve curveUp = new BezierCurve(sc, pd);
-    private BezierCurve curveMid = new BezierCurve(sc, pd);
-    private BezierCurve curveDown = new BezierCurve(sc, pd);
+    private BezierCurve curveUp = new BezierCurve();
+    private BezierCurve curveDown = new BezierCurve();
 
     private double dif = 1;
 
     private Line xAxis = new Line(0,-1,0,1);
     private Line yAxis = new Line(-1,0,1,0);
     private ScreenPoint prevDrag;
+    private RealPoint curPoint;
     private Line currentLine = null;
 
-    private RealPoint curPoint = null;
     private int pc1 = 0;
     private int pc2 = 0;
 
-    private RealPoint checkPoints(BezierCurve curve, RealPoint point) {
+    private RealPoint checkPoints(BezierCurve curve, ScreenPoint point) {
         for(RealPoint p : curve.getPrimaryPoints()) {
-            if (Math.pow(p.getX() - point.getX(), 2) + Math.pow(p.getY() - point.getY(), 2) < 0.02) {
+            ScreenPoint sp = sc.r2s(p);
+            if (Math.pow(sp.getX() - point.getX(), 2) + Math.pow(sp.getY() - point.getY(), 2) < 10) {
                 return p;
             }
         }
         for(RealPoint p : curve.getSupportPoints()) {
-            if (Math.pow(p.getX() - point.getX(), 2) + Math.pow(p.getY() - point.getY(), 2) < 0.02) {
+            ScreenPoint sp = sc.r2s(p);
+            if (Math.pow(sp.getX() - point.getX(), 2) + Math.pow(sp.getY() - point.getY(), 2) < 10) {
                 return p;
             }
         }
         return null;
     }
+
+
 
     @Override
     public void paint(Graphics g) {
@@ -94,6 +99,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
             drawLine(ld,l);
         }
 
+        BezierCurve curveMid = makeMiddleCurve(curveUp, curveDown, dif);
         curveUp.setSc(sc);
         curveDown.setSc(sc);
         curveMid.setSc(sc);
@@ -102,22 +108,7 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
         curveDown.setPd(pd);
         curveMid.setPd(pd);
 
-        if(curveUp.hasEqualSize(curveDown)) {
-            double dif1 = 2 - dif;
-            curveMid.getPrimaryPoints().clear();
-            curveMid.getSupportPoints().clear();
-            for (int i = 0; i < curveUp.getPrimaryPoints().size(); i++) {
-                double pX = (curveUp.getPrimaryPoints().get(i).getX() * dif + curveDown.getPrimaryPoints().get(i).getX() * dif1) / 2;
-                double pY = (curveUp.getPrimaryPoints().get(i).getY() * dif + curveDown.getPrimaryPoints().get(i).getY() * dif1) / 2;
-                curveMid.addPrimary(new RealPoint(pX, pY));
-            }
 
-            for (int i = 0; i < curveUp.getSupportPoints().size(); i++) {
-                double pX = (curveUp.getSupportPoints().get(i).getX() * dif + curveDown.getSupportPoints().get(i).getX() * dif1) / 2;
-                double pY = (curveUp.getSupportPoints().get(i).getY() * dif + curveDown.getSupportPoints().get(i).getY() * dif1) / 2;
-                curveMid.addSupport(new RealPoint(pX, pY));
-            }
-        }
 
         curveUp.drawCurve();
         curveDown.drawCurve();
@@ -183,10 +174,18 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
 
     @Override
     public void mousePressed(MouseEvent e) {
+        ScreenPoint mousePos = new ScreenPoint(e.getX(), e.getY());
+        if (e.getY() < getHeight() / 3) {
+            curPoint = checkPoints(curveUp, mousePos);
+        }
+        if (e.getY() > getHeight() * 2 / 3) {
+            curPoint = checkPoints(curveDown, mousePos);
+        }
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
+        curPoint = null;
     }
 
     @Override
@@ -201,6 +200,14 @@ public class DrawPanel extends JPanel implements MouseListener, MouseMotionListe
 
     @Override
     public void mouseDragged(MouseEvent e) {
+        ScreenPoint mousePos = new ScreenPoint(e.getX(), e.getY());
+        RealPoint p = sc.s2r(mousePos);
+        if (curPoint != null) {
+            curPoint.setX(p.getX());
+            curPoint.setY(p.getY());
+            crosses.clear();
+        }
+        repaint();
     }
 
     @Override

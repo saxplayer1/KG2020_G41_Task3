@@ -18,9 +18,7 @@ public class BezierCurve {
         return this.supportPoints.size() == curve.supportPoints.size() && this.primaryPoints.size() == curve.primaryPoints.size();
     }
 
-    public BezierCurve(ScreenConverter sc, PixelDrawer pd) {
-        this.sc = sc;
-        this.pd = pd;
+    public BezierCurve() {
     }
 
     public void addPrimary(RealPoint point) {
@@ -43,6 +41,13 @@ public class BezierCurve {
         if (primaryPoints.size() * 2 - 2 == supportPoints.size() && supportPoints.size() != 0) {
             int j = 0;
             for (int i = 0; i < primaryPoints.size() - 1; i++) {
+                drawSegment(primaryPoints.get(i),
+                        supportPoints.get(j), supportPoints.get(j + 1), primaryPoints.get(i + 1));
+                j+=2;
+            }
+        } else {
+            int j = 0;
+            for (int i = 0; i < primaryPoints.size() - 2; i++) {
                 drawSegment(primaryPoints.get(i),
                         supportPoints.get(j), supportPoints.get(j + 1), primaryPoints.get(i + 1));
                 j+=2;
